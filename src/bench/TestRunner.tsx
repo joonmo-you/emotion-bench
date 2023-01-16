@@ -1,10 +1,14 @@
 import * as React from "react";
-import { useRecoilState, useRecoilValue } from "recoil";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { isUndefined } from "@fxts/core";
 import { nanoid } from "nanoid";
 
 import Repeat from "../components/Repeat";
+
+type TestResult = Array<number>;
+
+type TestResults = Array<TestResult>;
 
 export interface Interaction {
   __count: number;
@@ -13,13 +17,9 @@ export interface Interaction {
   timestamp: number;
 }
 
-interface TestCompRendererProps extends React.PropsWithChildren {
-  iterationNumber: number;
-}
-
-interface TestProcessorProps extends React.PropsWithChildren {
-  testId: string;
+interface TestRendererProps extends React.PropsWithChildren {
   numberOfTest: number;
+  iterationNumber: number;
 }
 
 interface TesetRunnerProps extends React.PropsWithChildren {
@@ -27,24 +27,30 @@ interface TesetRunnerProps extends React.PropsWithChildren {
   iterationNumber: number;
 }
 
-function TestCompRenderer({ iterationNumber, children: TestComponent }: TestCompRendererProps) {
-  const { query } = useRouter();
+function TestRenderer({ iterationNumber, children: TestComponent }: TestRendererProps) {
+  const router = useRouter();
+  const { isReady, pathname, query } = router;
   const iterationResults: Array<number> = [];
 
   React.useEffect(() => {
-    if (iterationResults.length === iterationNumber) {
+    if (!isReady) {
+      return;
     }
+
+    if (iterationResults.length !== iterationNumber) {
+      throw new Error(
+        `Expect iteration results to have ${iterationNumber} length  (received: ${iterationResults.length})`
+      );
+    }
+
+    (async () => {
+      const testIndex = Number(router.query.testIndex);
+      console.log(iterationResults);
+      await router.replace({ pathname, query: { ...query, testIndex: testIndex + 1 } });
+    })();
   });
 
-  function handleRender(
-    id: string,
-    phase: "mount" | "update",
-    actualDuration: number,
-    baseDuration: number,
-    startTime: number,
-    commitTime: number,
-    interactions: Set<Interaction>
-  ) {
+  function handleRender(id: string, phase: "mount" | "update", actualDuration: number) {
     iterationResults.push(actualDuration);
   }
 
@@ -57,25 +63,30 @@ function TestCompRenderer({ iterationNumber, children: TestComponent }: TestComp
   );
 }
 
-function TestProcessor({ testId, numberOfTest, children }: TestProcessorProps) {
-  React.useEffect(() => {}, [testId]);
-
-  return <>{children}</>;
-}
-
 function TestRunner({ numberOfTest, iterationNumber, children: TestComponent, ...props }: TesetRunnerProps) {
-  const { query, pathname } = useRouter();
-  const { testId } = query;
+  const router = useRouter();
+  const { query, pathname } = router;
+
+  const testId = query.testId;
+  const testIndex = Number(query.testIndex);
 
   if (typeof TestComponent === "undefined") throw new Error("Pass at least single child into <TestRunner />");
   if (Array.isArray(testId)) throw new Error("You can't run a test with multiple test ids.");
 
-  return typeof testId === "undefined" ? (
-    <Link href={{ pathname: pathname, query: { testId: nanoid() } }}>start test</Link>
-  ) : (
-    <TestProcessor testId={testId} numberOfTest={numberOfTest}>
-      <TestCompRenderer iterationNumber={iterationNumber}>{TestComponent}</TestCompRenderer>
-    </TestProcessor>
+  if (isUndefined(testId)) {
+    return <Link href={{ pathname: pathname, query: { testId: nanoid(), testIndex: 0 } }}>start test</Link>;
+  }
+
+  if (numberOfTest === testIndex + 1) {
+    // show result
+    // router.push("/result");
+    return null;
+  }
+
+  return (
+    <TestRenderer numberOfTest={numberOfTest} iterationNumber={iterationNumber}>
+      {TestComponent}
+    </TestRenderer>
   );
 }
 
