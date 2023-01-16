@@ -4,7 +4,7 @@ import Link from "next/link";
 import { isUndefined } from "@fxts/core";
 import { nanoid } from "nanoid";
 
-import Repeat from "../components/Repeat";
+import Repeat from "../utils/Repeat";
 
 type TestResult = Array<number>;
 
