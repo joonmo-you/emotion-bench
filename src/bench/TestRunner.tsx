@@ -6,17 +6,6 @@ import { nanoid } from "nanoid";
 
 import Repeat from "../utils/Repeat";
 
-type TestResult = Array<number>;
-
-type TestResults = Array<TestResult>;
-
-export interface Interaction {
-  __count: number;
-  id: number;
-  name: string;
-  timestamp: number;
-}
-
 interface TestRendererProps extends React.PropsWithChildren {
   numberOfTest: number;
   iterationNumber: number;
