@@ -1,5 +1,13 @@
 import { Profiler, ProfilerOnRenderCallback } from 'react';
-import Node from '../src/components/Node';
+
+import Node from 'components/Node';
+import { Event, EventBus } from 'utils/bus';
+import { ProfilerOnRenderEvent } from 'event/ProfilerOnRenderEvent';
+
+EventBus.toObservable().subscribe((event: Event) => {
+  console.log('receive');
+  console.log(event);
+});
 
 function Home() {
   const handleRender: ProfilerOnRenderCallback = (
@@ -11,15 +19,9 @@ function Home() {
     commitTime,
     interactions,
   ) => {
-    console.log({
-      id,
-      phase,
-      actualDuration,
-      baseDuration,
-      startTime,
-      commitTime,
-      interactions,
-    });
+    EventBus.post(
+      new ProfilerOnRenderEvent([id, phase, actualDuration, baseDuration, startTime, commitTime, interactions]),
+    );
   };
   return (
     <div>
